@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Media;
 using System.Numerics;
 
 
 
 class Enemy
 {
-    public List<string> faces = new List<string>() {"|•_•|", "|0_0|", "|X_X|", "|◣_◢|","|*_*|","|•v•|","|T_T|"};
+    public List<string> faces = new List<string>() {"|о_о|", "|0_0|", "|X_X|", "|◣_◢|","|*_*|","|•v•|","|T_T|"};
     public Level current_level;
     public int final_iq = 0;
 
@@ -18,40 +17,35 @@ class Enemy
         return faces[face_idx];
     }
 
-    public string answer_dialogue(List<string> dialogue, int index)
+    public void Dialogue(List<string> dialogue, int delay)
     {
-        return dialogue[index];
-    }
-
-    public void Chatter(string user_message, bool guess)
-    {
-        if(user_message == ' ')
+        int chat_idx = 1;
+        Random rnd = new Random();
+        
+        Console.WriteLine($"{faces[0]} - {dialogue[0]}");
+        while (chat_idx < dialogue.Count)
         {
-            answer_dialogue(current_level.dialogue, current_level.dialogue_index);
-            current_level.dialogue_index += 1;
-        }
-    }
+            int random_face_idx = rnd.Next(faces.Count); 
 
-    public string Guess()
-    {
-        input = Console.ReadLine();
-        return input;
-    }
+            Console.Write("> ");
+            string user_input = Console.ReadLine();
 
-    public void Talk(bool guess, SoundPlayer sound, float delay)
-    {
-        sound.Play();
-        Thread.Sleep(delay);
-        if (guess)
-        {
-            input = Console.ReadLine();
-            return input;
+            if (user_input == current_level.target_word)
+            {
+                Console.WriteLine("УРА, НАКОНЕЦ-ТО");
+                current_level?.finishLevel();
+                break;
+            }
+            else
+            {
+                Console.WriteLine($"{faces[random_face_idx]} - {dialogue[chat_idx]}");
+                chat_idx += 1;
+            }
+            
+            Thread.Sleep(delay);
         }
-        input = Console.ReadLine();
-        return input;
     }
 }   
-
 
 
 abstract class Level
@@ -59,8 +53,7 @@ abstract class Level
     public int level_index;
     public string target_word;
     public int attempts;
-    public List<string> dialogue;
-    public int dialogue_index = 0;
+    public List<string> dialogue = new List<string>();
     public abstract void startLevel();
     public abstract void finishLevel();
 
@@ -70,59 +63,65 @@ abstract class Level
     }
 }
 
-// class FirstLevel: Level
-// {
-//     private readonly string _target_word;
-//     private string _maxAttempts;
-//     private int current_attempt;
-//     public List<string> dialogue = new List<string> {"Итак, я загадал предмет, который очень похож на грушу, но ее нельзя скушать","эхх, это что? ТАК СЛОЖНО УГАДАТЬ 1 СЛОВО?!!?!?!?!"};
+// 1. Реализация конкретного уровня
+class LevelOne : Level
+{
+    private Enemy _enemy;
 
+    public LevelOne(int idx, Enemy enemy) : base(idx)
+    {
+        _enemy = enemy;
+        target_word = "яблоко";
+        dialogue.Add("Ты попал в лучшее iq тестирование в мире");
+        dialogue.Add("Надеюсь ты не настолько тупой, как те остальные кожаные...");
+        dialogue.Add("Короче, я загадываю слово, а ты его должен угадать");
+        dialogue.Add("За каждый правильный ответ я буду давать тебе 10 iq, а если не угадаешь, то будет нечто страшное");
+    }
 
-//     public FirstLevel(string target, int maxAtt, List<string> dg) : base(0)
-//     {
-//         _target_word = target.ToLowerInvariant();
-//         _maxAttempts = maxAtt;
-//         dialogue = dg;
-        
-//     }
-//     public int AttemptsLeft => _maxAttempts - current_attempt;
+    public override void startLevel()
+    {
+        _enemy.Dialogue(dialogue, 500);
+    }
 
-//     public override void StartLevel()
-//     {
-//         Console.WriteLine(dialogue[0]);
-//     }
-
-//     public override void finishLevel()
-//     {
-//         if (Completed)
-//             Console.WriteLine("Поздравляю! ТЫ, проходишь дальше...");
-//         else
-//             Console.WriteLine(dialogue[-1]);
-//     }
-// }
-
-
+    public override void finishLevel()
+    {
+        Console.WriteLine(_enemy.get_face(5) + "Афигеть ты умный +10 к IQ");
+        _enemy.final_iq += 10;
+    }
+}
 
 
 class Stepper
 {
     private readonly Enemy _enemy;
     private List<Level> _levels;
+    private int _currentLevelIndex = 0;
 
-    public Stepper(Enemy enemy, Level levels)
+    public Stepper(Enemy enemy, List<Level> levels)
     { 
         _enemy = enemy;
         _levels = levels;
     }
 
-
+    public void PlayNextLevel()
+    {
+        if (_currentLevelIndex < _levels.Count)
+        {
+            _enemy.current_level = _levels[_currentLevelIndex];
+            _enemy.current_level.startLevel();
+            _currentLevelIndex++;
+        }
+    }
 }
-// class Program
-// {
-//     static void Main()
-//     {
-//         var enemy = new Enemy();
-//         var stepper = new Stepper(enemy);
-//         stepper.DrawStep();
-//     }
-// }
+
+class Program
+{
+    static void Main()
+    {
+        Enemy enemy = new Enemy();
+        List<Level> levels = new List<Level> { new LevelOne(1, enemy) };
+        Stepper stepper = new Stepper(enemy, levels);
+
+        stepper.PlayNextLevel();
+    }
+}
