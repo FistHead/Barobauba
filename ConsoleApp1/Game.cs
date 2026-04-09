@@ -8,7 +8,7 @@ using System.Numerics;
 
 class Enemy
 {
-    public List<string> faces = new List<string>() {"|о_о|", "|0_0|", "|X_X|", "|◣_◢|","|*_*|","|•v•|","|T_T|"};
+    public List<string> faces = new List<string>() {"|о_о|", "|0_0|", "|X_X|", "|◣_◢|","|*_*|","|оvо|","|T_T|"};
     public Level current_level;
     public int final_iq = 0;
 
