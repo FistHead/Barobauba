@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "5B4MQA5dElk=",
+  "dgSpecHash": "/XbfiHqQ5uw=",
   "success": true,
   "projectFilePath": "D:\\GitProjects\\Barobauba\\ConsoleApp1\\ConsoleApp1.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\Yura\\.nuget\\packages\\system.windows.extensions\\9.0.0\\system.windows.extensions.9.0.0.nupkg.sha512"
+  ],
   "logs": []
 }

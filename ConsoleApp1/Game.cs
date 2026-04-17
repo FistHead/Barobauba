@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Numerics;
-
-
+using System.IO;
 
 class Enemy
 {
@@ -54,12 +53,24 @@ abstract class Level
     public string target_word;
     public int attempts;
     public List<string> dialogue = new List<string>();
+    public List<string> wrong_replics = new List<string>();
+    public List<string> win_replics = new List<string>();
+
     public abstract void startLevel();
     public abstract void finishLevel();
 
     public Level(int level_idx)
     {
         level_index = level_idx;
+    }
+
+    public List<string> LoadDialogue(string path)
+    {
+        if (File.Exists(path))
+        {
+            return File.ReadAllLines(path).ToList();
+        }
+        return new List<string> { "ERROR, ФАЙЛ С ДИАЛОГОМ НЕ БЫЛ НАЙДЕН" }; 
     }
 }
 
@@ -72,10 +83,10 @@ class LevelOne : Level
     {
         _enemy = enemy;
         target_word = "яблоко";
-        dialogue.Add("Ты попал в лучшее iq тестирование в мире");
-        dialogue.Add("Надеюсь ты не настолько тупой, как те остальные кожаные...");
-        dialogue.Add("Короче, я загадываю слово, а ты его должен угадать");
-        dialogue.Add("За каждый правильный ответ я буду давать тебе 10 iq, а если не угадаешь, то будет нечто страшное");
+        dialogue = LoadDialogue("Dialogues/dialogue1.txt");
+        wrong_replics = new List<string> { $"Так, ладно, повторю еще раз, {dialogue[dialogue.Count - 1]}", "Ахх, скажи еще раз","ДА ТЫ" }; 
+
+        Console.WriteLine(dialogue);
     }
 
     public override void startLevel()
