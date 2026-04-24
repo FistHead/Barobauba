@@ -14,3 +14,6 @@ D:\GitProjects\Barobauba\ConsoleApp1\obj\Debug\net10.0\ConsoleApp1.pdb
 D:\GitProjects\Barobauba\ConsoleApp1\obj\Debug\net10.0\ConsoleApp1.genruntimeconfig.cache
 D:\GitProjects\Barobauba\ConsoleApp1\obj\Debug\net10.0\ref\ConsoleApp1.dll
 D:\GitProjects\Barobauba\ConsoleApp1\obj\Debug\net10.0\ConsoleApp1.csproj.AssemblyReference.cache
+D:\GitProjects\Barobauba\ConsoleApp1\bin\Debug\net10.0\System.Windows.Extensions.dll
+D:\GitProjects\Barobauba\ConsoleApp1\bin\Debug\net10.0\runtimes\win\lib\net9.0\System.Windows.Extensions.dll
+D:\GitProjects\Barobauba\ConsoleApp1\obj\Debug\net10.0\ConsoleA.CB28C8CC.Up2Date

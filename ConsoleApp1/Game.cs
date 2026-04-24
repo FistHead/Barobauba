@@ -1,138 +1,242 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Numerics;
-using System.IO;
+using System.Media;
 
-class Enemy
+//--------------------------------------------------------
+abstract class Action
 {
-    public List<string> faces = new List<string>() {"|о_о|", "|0_0|", "|X_X|", "|◣_◢|","|*_*|","|оvо|","|T_T|"};
-    public Level current_level;
-    public int final_iq = 0;
+    public string Name;
+    public string Description;
+    public abstract void Execute();
 
-    public string get_face(int face_idx)
+    public Action(string name, string desc)
     {
-        return faces[face_idx];
+        Name = name;
+        Description = desc;
+    }
+}
+//--------------------------------------------------------
+abstract class GameObject
+{
+    public string Name;
+    public string Description;
+    public Action Action;
+
+    public GameObject(string name, string desc, Action action)
+    {
+        Name = name;
+        Description = desc;
+        Action = action;
+    }
+}
+//--------------------------------------------------------
+class States
+{
+    public int LevelIndex = 0;
+    public int Iq = 0;
+    public bool HasScrewdriver = false;
+    public bool IsFree = false;
+    public Room CurrentRoom = null!;
+}
+//--------------------------------------------------------
+class SimpleObject : GameObject
+{
+    public SimpleObject(string name, string desc, Action action) : base(name, desc, action) { }
+}
+
+class Look : Action
+{
+    private States _state;
+
+    public Look(States state) : base("Осмотреться", "Изучить окружение")
+    {
+        _state = state;
     }
 
-    public void Dialogue(List<string> dialogue, int delay)
+    public override void Execute()
     {
-        int chat_idx = 1;
-        Random rnd = new Random();
-        
-        Console.WriteLine($"{faces[0]} - {dialogue[0]}");
-        while (chat_idx < dialogue.Count)
+        Room room = _state.CurrentRoom;
+        Console.Clear();
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"--- {room.Name} ---");
+        Console.WriteLine(room.Description);
+
+        if (room.Objects.Count > 0)
         {
-            int random_face_idx = rnd.Next(faces.Count); 
-
-            Console.Write("> ");
-            string user_input = Console.ReadLine();
-
-            if (user_input == current_level.target_word)
+            Console.WriteLine("\nВы видите:");
+            for (int i = 0; i < room.Objects.Count; i++)
             {
-                Console.WriteLine("УРА, НАКОНЕЦ-ТО");
-                current_level?.finishLevel();
-                break;
+                Console.WriteLine($"{i + 1}. {room.Objects[i].Name}: {room.Objects[i].Description}");
             }
-            else
+        }
+        else
+        {
+            Console.WriteLine("\nЗдесь нет ничего примечательного.");
+        }
+        Console.ResetColor();
+        Console.WriteLine();
+    }
+}
+
+class VentilationAction : Action
+{
+    private Action nextAction;
+    public override void Execute()
+    {
+        Console.WriteLine("Вентиляция открывается со скрипом...");
+        nextAction.Execute();
+    }
+
+    public VentilationAction(Action action) : base("Вентиляция", "Открыть решетку")
+    {
+        nextAction = action;
+    }
+}
+
+class Dialogue : Action
+{
+    public List<string> replics;
+    public float DelayPerChar = 0.03f;
+
+    public Dialogue(string npcName, List<string> lines) : base("Говорить", $"Диалог с {npcName}")
+    {
+        replics = lines;
+    }
+
+    public override void Execute()
+    {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        foreach (var line in replics)
+        {
+            foreach (char c in line)
             {
-                Console.WriteLine($"{faces[random_face_idx]} - {dialogue[chat_idx]}");
-                chat_idx += 1;
+                Console.Write(c);
+                Thread.Sleep((int)(DelayPerChar * 100));
             }
-            
-            Thread.Sleep(delay);
+            Console.WriteLine();
         }
+        Console.ResetColor();
     }
-}   
+}
 
-
-abstract class Level
+class MoveAction : Action
 {
-    public int level_index;
-    public string target_word;
-    public int attempts;
-    public List<string> dialogue = new List<string>();
-    public List<string> wrong_replics = new List<string>();
-    public List<string> win_replics = new List<string>();
-
-    public abstract void startLevel();
-    public abstract void finishLevel();
-
-    public Level(int level_idx)
+    private Room _target;
+    private States _state;
+    public MoveAction(Room target, States state) : base("Идти", $"Перейти в {target.Name}")
     {
-        level_index = level_idx;
+        _target = target;
+        _state = state;
     }
-
-    public List<string> LoadDialogue(string path)
+    public override void Execute()
     {
-        if (File.Exists(path))
+        Console.WriteLine($"Вы переходите в {_target.Name}....");
+        _state.CurrentRoom = _target;
+        Thread.Sleep(1000);
+    }
+}
+
+class Room
+{
+    public string Name;
+    public string Description;
+    public List<GameObject> Objects = new List<GameObject>();
+
+    public Room(string name, string desc)
+    {
+        Name = name;
+        Description = desc;
+    }
+}
+
+class EscapeAction : Action
+{
+    private States _state;
+    public EscapeAction(States state) : base("Сбежать", "Вылезти через вентиляцию") { _state = state; }
+
+    public override void Execute()
+    {
+        if (_state.HasScrewdriver)
         {
-            return File.ReadAllLines(path).ToList();
+            Console.WriteLine("Вы открутили решетку отверткой и выбрались на свободу!");
+            _state.IsFree = true;
         }
-        return new List<string> { "ERROR, ФАЙЛ С ДИАЛОГОМ НЕ БЫЛ НАЙДЕН" }; 
-    }
-}
-
-// 1. Реализация конкретного уровня
-class LevelOne : Level
-{
-    private Enemy _enemy;
-
-    public LevelOne(int idx, Enemy enemy) : base(idx)
-    {
-        _enemy = enemy;
-        target_word = "яблоко";
-        dialogue = LoadDialogue("Dialogues/dialogue1.txt");
-        wrong_replics = new List<string> { $"Так, ладно, повторю еще раз, {dialogue[dialogue.Count - 1]}", "Ахх, скажи еще раз","ДА ТЫ" }; 
-
-        Console.WriteLine(dialogue);
-    }
-
-    public override void startLevel()
-    {
-        _enemy.Dialogue(dialogue, 500);
-    }
-
-    public override void finishLevel()
-    {
-        Console.WriteLine(_enemy.get_face(5) + "Афигеть ты умный +10 к IQ");
-        _enemy.final_iq += 10;
-    }
-}
-
-
-class Stepper
-{
-    private readonly Enemy _enemy;
-    private List<Level> _levels;
-    private int _currentLevelIndex = 0;
-
-    public Stepper(Enemy enemy, List<Level> levels)
-    { 
-        _enemy = enemy;
-        _levels = levels;
-    }
-
-    public void PlayNextLevel()
-    {
-        if (_currentLevelIndex < _levels.Count)
+        else
         {
-            _enemy.current_level = _levels[_currentLevelIndex];
-            _enemy.current_level.startLevel();
-            _currentLevelIndex++;
+            Console.WriteLine("Решетка намертво прикручена. Нужно чем-то её поддеть...");
         }
     }
 }
 
+class BookAction : Action 
+{
+    private States _s;
+    public BookAction(States s) : base("Обыскать", "Искать что-то полезное") { _s = s; }
+    public override void Execute() 
+    {
+        if (!_s.HasScrewdriver)
+        {
+            Console.WriteLine("\n[!] Вы нашли старую, ржавую отвертку!");
+            _s.HasScrewdriver = true;
+        }
+        else Console.WriteLine("\nЗдесь больше нет ничего полезного.");
+    }
+}
+
+#region Игра
 class Program
 {
     static void Main()
     {
-        Enemy enemy = new Enemy();
-        List<Level> levels = new List<Level> { new LevelOne(1, enemy) };
-        Stepper stepper = new Stepper(enemy, levels);
+        States game = new States();
 
-        stepper.PlayNextLevel();
+        Room cell = new Room("Тюремная камера", "Сырая и темная комната. На стене висит плакат.");
+        Room corridor = new Room("Главный коридор", "Длинный пролет. Слышны шаги охранников.");
+
+        var borisDialogue = new Dialogue("Борис", new List<string> { 
+            "Псс, парень! Хочешь выйти отсюда?", 
+            "В коридоре есть вентиляция.",
+            "Поищи отвертку в ящиках." 
+        });
+
+        cell.Objects.Add(new SimpleObject("Сокамерник Борис", "Старый зэк", borisDialogue));
+        cell.Objects.Add(new SimpleObject("Дверь", "Путь в коридор", new MoveAction(corridor, game)));
+
+        corridor.Objects.Add(new SimpleObject("Ящик", "Старый железный ящик", new BookAction(game)));
+        corridor.Objects.Add(new SimpleObject("Вентиляция", "Решетка на стене", new EscapeAction(game)));
+        corridor.Objects.Add(new SimpleObject("Назад", "Вернуться в камеру", new MoveAction(cell, game)));
+
+        game.CurrentRoom = cell;
+        
+        while (!game.IsFree)
+        {
+            new Look(game).Execute();
+            
+            Console.WriteLine("\nНапиши номер объекта (или 0/enter для выхода):");
+            Console.Write("> ");
+            string? input = Console.ReadLine();
+            
+            if (int.TryParse(input, out int index) && index > 0 && index <= game.CurrentRoom.Objects.Count)
+            {
+                // Вызываем действие объекта
+                game.CurrentRoom.Objects[index - 1].Action.Execute();
+                Console.WriteLine("\nНажми любую клавишу...");
+                Console.ReadKey();
+            }
+            else if (index == 0) break;
+        }
+
+        if (game.IsFree)
+        {
+            Console.Clear();
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("ПОЗДРАВЛЯЮ! Вы НА СВОБОДЕ!");
+            Console.ResetColor();
+
+            SoundPlayer sp = new SoundPlayer(@"sounds/kids-saying-yay-sound-effect_3.wav");
+            sp.Play();
+        }
     }
 }
+#endregion
